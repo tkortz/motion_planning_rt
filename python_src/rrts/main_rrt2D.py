@@ -10,6 +10,8 @@ from scipy.spatial import ConvexHull
 from matplotlib import path
 import time
 
+import liblitmus
+
 from PathSmoothing import SmoothPath
 from tools import *
 from rrt_path_planner import rrt_path
@@ -30,7 +32,7 @@ def draw_map(obstacles, params):
 class RRT_Params:
     def __init__(self):
         self.animate = 0 # show RRT construction, set 0 to reduce time of the RRT algorithm
-        self.visualize = 1 # show constructed paths at the end of the RRT and path smoothing algorithms
+        self.visualize = 0 # show constructed paths at the end of the RRT and path smoothing algorithms
         self.maxiters = 5000 # max number of samples to build the RRT
         self.goal_prob = 0.05 # with probability goal_prob, sample the goal
         self.minDistGoal = 0.25 # [m], min distance os samples from goal to add goal node to the RRT
@@ -38,63 +40,99 @@ class RRT_Params:
         self.world_bounds_x = [-2.5, 2.5] # [m], map size in X-direction
         self.world_bounds_y = [-2.5, 2.5] # [m], map size in Y-direction
 
-# Initialization
-params = RRT_Params()
+def main_loop():
+    # Initialization
+    params = RRT_Params()
 
-# Obstacles. An obstacle is represented as a convex hull of a number of points. 
-# First row is x, second is y (position of vertices)
-w = 0.2
-obstacles = [
-              np.array([[0, 0], [1, 0], [1, 0.1], [0, w]]),
-              np.array([[0, 0], [w, 0.2], [0.1, 2], [0.0, 2.0]]),
-              np.array([[0, 2-w], [1, 2], [1, 2+w], [0, 2+w]]),
-              np.array([[1-w, 0], [1+w, 0], [1+w, 1], [1, 1]]),
-              np.array([[1-w, 2+w], [1+w, 2+w], [1+w, 1.5], [1, 1.5]]),
-              np.array([[0.8, 1], [1+w, 1], [1+w, 1+w], [0.8, 1+w]]),
-              np.array([[0.8, 1.5], [1+w, 1.5], [1+w, 1.5+w], [0.8, 1.5+w]]),
+    # Obstacles. An obstacle is represented as a convex hull of a number of points.
+    # First row is x, second is y (position of vertices)
+    w = 0.2
+    obstacles = [
+                np.array([[0, 0], [1, 0], [1, 0.1], [0, w]]),
+                np.array([[0, 0], [w, 0.2], [0.1, 2], [0.0, 2.0]]),
+                np.array([[0, 2-w], [1, 2], [1, 2+w], [0, 2+w]]),
+                np.array([[1-w, 0], [1+w, 0], [1+w, 1], [1, 1]]),
+                np.array([[1-w, 2+w], [1+w, 2+w], [1+w, 1.5], [1, 1.5]]),
+                np.array([[0.8, 1], [1+w, 1], [1+w, 1+w], [0.8, 1+w]]),
+                np.array([[0.8, 1.5], [1+w, 1.5], [1+w, 1.5+w], [0.8, 1.5+w]]),
 
-              np.array([[-0.5, -0.5], [-1.5, -0.5], [-1-w, -1.5-w], [-0.8, -1.5-w]]),
-              
-              np.array([[0.5, -1.2], [2.0, -1.2], [1+w, -1.5-w], [0.8, -1.5-w]])
-            ]
+                np.array([[-0.5, -0.5], [-1.5, -0.5], [-1-w, -1.5-w], [-0.8, -1.5-w]]),
 
-draw_map(obstacles, params)
+                np.array([[0.5, -1.2], [2.0, -1.2], [1+w, -1.5-w], [0.8, -1.5-w]])
+                ]
 
-# Start and goal positions
-xy_start = np.array([0.5, 0.5]);   plt.plot(xy_start[0], xy_start[1],'bo',color='red', markersize=20, label='Start')
-xy_goal =  np.array([-1.5, 0.8]);  plt.plot(xy_goal[0],  xy_goal[1], 'bo',color='green',markersize=20, label='Goal')
-plt.legend()
+    if params.visualize:
+        draw_map(obstacles, params)
 
-P = rrt_path(obstacles, xy_start, xy_goal, params)
-plt.plot( P[:,0], P[:,1], color='green', linewidth=5, label='Path from RRT' )
-P_smooth = SmoothPath(P, obstacles, smoothiters=100)
-plt.plot(P_smooth[:,0], P_smooth[:,1], linewidth=5, color='orange', label='Shortened path')
+    # Start and goal positions
+    xy_start = np.array([0.5, 0.5]);   plt.plot(xy_start[0], xy_start[1],'bo',color='red', markersize=20, label='Start')
+    xy_goal =  np.array([-1.5, 0.8]);  plt.plot(xy_goal[0],  xy_goal[1], 'bo',color='green',markersize=20, label='Goal')
+    if params.visualize:
+        plt.legend()
 
-# TODO: setpoints from via-waypoints
-V = 0.3
-rate = 10; dt = 1./rate
-dx = V * dt
+    P = rrt_path(obstacles, xy_start, xy_goal, params)
 
-traj = np.array([P_smooth[0]])
-for i in range(len(P_smooth)-1):
-    A = P_smooth[i]
-    B = P_smooth[i+1]
-    traj = np.vstack([traj, A])
-    
-    n = (B-A) / norm(B-A)
-    delta = n * dx
-    N = int( norm(B-A) / norm(delta) )
-    sp = A
-    for i in range(N):
-        sp += delta
-        traj = np.vstack([traj, sp])
-    traj = np.vstack([traj, B])
+    if params.visualize:
+        plt.plot( P[:,0], P[:,1], color='green', linewidth=5, label='Path from RRT' )
+    P_smooth = SmoothPath(P, obstacles, smoothiters=100)
+    if params.visualize:
+        plt.plot(P_smooth[:,0], P_smooth[:,1], linewidth=5, color='orange', label='Shortened path')
 
+    # TODO: setpoints from via-waypoints
+    V = 0.3
+    rate = 10; dt = 1./rate
+    dx = V * dt
 
-# plt.figure(figsize=(10,10))
-# plt.plot(traj[:,0], traj[:,1], '.')
+    traj = np.array([P_smooth[0]])
+    for i in range(len(P_smooth)-1):
+        A = P_smooth[i]
+        B = P_smooth[i+1]
+        traj = np.vstack([traj, A])
 
+        n = (B-A) / norm(B-A)
+        delta = n * dx
+        N = int( norm(B-A) / norm(delta) )
+        sp = A
+        for i in range(N):
+            sp += delta
+            traj = np.vstack([traj, sp])
+        traj = np.vstack([traj, B])
 
-if params.visualize:
-  plt.legend()
-  plt.show()
+    # plt.figure(figsize=(10,10))
+    # plt.plot(traj[:,0], traj[:,1], '.')
+
+    if params.visualize:
+        plt.legend()
+        plt.show()
+
+if __name__ == "__main__":
+    wcet = 2000
+    period = 5000
+    deadline = 5000
+    phase = 0
+    early = False
+
+    numJobs = 150
+
+    # Make this thread a real-time task
+    liblitmus.call_set_rt_task_param(wcet, period, deadline, phase, early)
+    print("\nFinished setting rt params.\n")
+
+    liblitmus.call_init_litmus()
+    print("\nCalled init_litmus.\n")
+
+    liblitmus.set_task_mode_litmusrt()
+    print("\nNow a real-time task.\n")
+
+    print("\nAbout to wait for synchronous release.\n")
+    liblitmus.call_wait_for_ts_release()
+
+    for i in range(numJobs):
+        main_loop()
+
+        # Wait for the next period
+        liblitmus.call_sleep_next_period()
+
+    # Make it not a real-time task anymore
+    liblitmus.set_task_mode_background()
+    print("\nNow a background task again.\n")

@@ -83,8 +83,10 @@ def preprocessing(poses, scans):
         scans_global.append(np.hstack([a,b]))
     return poses, scans_global
 
-filename1 = 'csvs/drone1.csv'
-filename2 = 'csvs/drone2.csv'
+#filename1 = 'csvs/drone1.csv'
+#filename2 = 'csvs/drone2.csv'
+filename1 = 'python_src/mapping/csvs/drone1.csv'
+filename2 = 'python_src/mapping/csvs/drone2.csv'
 
 poses1, scans1 = file_read(filename1)
 poses1, scans1 = preprocessing(poses1, scans1)
