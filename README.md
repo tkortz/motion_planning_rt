@@ -1,3 +1,7 @@
+# Requirements
+
+This repository requires the [LITMUS^RT kernel](https://github.com/LITMUS-RT/litmus-rt) and the [Python Liblitmus wrapper](https://github.com/tkortz/liblitmus-py) for APF and RRT.
+
 # Motion Planning
 
 <img src="https://github.com/RuslanAgishev/motion_planning/blob/master/figures/layered_planner/bugtrap_4drones.gif" width="600"/>
