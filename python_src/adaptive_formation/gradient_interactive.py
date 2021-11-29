@@ -246,17 +246,18 @@ if __name__ == "__main__":
     deadline = 200
     phase = 0
     early = False
+    cpu = 3
 
-    numReps = 35
+    numReps = 3000
 
     jobs = 0
 
     # Make this thread a real-time task
-    liblitmus.call_set_rt_task_param(wcet, period, deadline, phase, early)
-    print("\nFinished setting rt params.\n")
-
     liblitmus.call_init_litmus()
     print("\nCalled init_litmus.\n")
+
+    liblitmus.call_set_rt_task_param(wcet, period, deadline, phase, early, cpu)
+    print("\nFinished setting rt params.\n")
 
     liblitmus.set_task_mode_litmusrt()
     print("\nNow a real-time task.\n")
